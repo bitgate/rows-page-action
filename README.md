@@ -14,7 +14,7 @@ Push a CSV, TSV, JSON, JSONL or Parquet file from a workflow to [rows.page](http
 - run: echo "${{ steps.rows.outputs.url }}"
 ```
 
-Anonymous datasets are deleted after 7 days. Open the owner link (the masked `owner-url` output) and sign in to keep one.
+The link also lands in the job summary. Anonymous datasets are deleted after 7 days. Open the owner link (the masked `owner-url` output) and sign in to keep one.
 
 ### One stable link per pull request
 
