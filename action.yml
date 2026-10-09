@@ -1,0 +1,96 @@
+name: 'Push to rows.page'
+description: 'Push a CSV, TSV, JSON, JSONL or Parquet file to rows.page and get a link a human can explore, with a PR comment showing what changed'
+branding:
+  icon: table
+  color: blue
+
+inputs:
+  path:
+    description: 'File to push: .csv, .tsv, .json, .jsonl or .parquet, up to 100 MB'
+    required: true
+  title:
+    description: 'Dataset title shown on the page'
+    required: false
+    default: ''
+  api-key:
+    description: 'rows.page API key (rpk_...), pass via secrets. Falls back to the ROWS_API_KEY env var. Datasets go to your account and do not expire; needed for key'
+    required: false
+    default: ''
+  key:
+    description: 'Your own stable dataset name, 1-100 characters of A-Z a-z 0-9 . _ -. Pushing the same key again adds a version to that dataset, so the link stays the same. Needs api-key'
+    required: false
+    default: ''
+  id-column:
+    description: 'Column that identifies a row across versions, so the page can count changed rows and not only new and gone ones'
+    required: false
+    default: ''
+  dataset-token:
+    description: 'Dataset token (rpt_...) from an earlier anonymous push, pass via secrets. Pushes a new version of that dataset without an account'
+    required: false
+    default: ''
+  comment:
+    description: 'Post one PR comment with the link and what changed, updated in place on every push. Needs pull-requests: write; skipped when the event is not a pull request'
+    required: false
+    default: 'true'
+  github-token:
+    description: 'Token used for the PR comment'
+    required: false
+    default: ${{ github.token }}
+
+outputs:
+  url:
+    description: 'Dataset page, the link to open'
+    value: ${{ steps.push.outputs.url }}
+  id:
+    description: 'Dataset id'
+    value: ${{ steps.push.outputs.id }}
+  version:
+    description: 'Version number, 1 for a new dataset'
+    value: ${{ steps.push.outputs.version }}
+  unchanged:
+    description: 'true when the file matched the latest version, so no version was added'
+    value: ${{ steps.push.outputs.unchanged }}
+  rows:
+    description: 'Row count'
+    value: ${{ steps.push.outputs.rows }}
+  rows-delta:
+    description: 'Row count difference against the previous version. Empty for a new dataset or an unchanged push'
+    value: ${{ steps.push.outputs.rows-delta }}
+  diff-url:
+    description: 'Dataset page opened on what changed since the previous version. Empty for a new dataset or an unchanged push'
+    value: ${{ steps.push.outputs.diff-url }}
+  expires-at:
+    description: 'When an anonymous dataset gets deleted. Empty when it does not expire'
+    value: ${{ steps.push.outputs.expires-at }}
+  owner-url:
+    description: 'Page URL with owner controls (keep, delete, re-push), masked in logs. Only when a dataset was created'
+    value: ${{ steps.push.outputs.owner-url }}
+  token:
+    description: 'Dataset token (rpt_...) for later pushes via dataset-token, masked in logs. Only when a dataset was created, so store it'
+    value: ${{ steps.push.outputs.token }}
+
+runs:
+  using: composite
+  steps:
+    - id: push
+      shell: bash
+      env:
+        RP_PATH: ${{ inputs.path }}
+        RP_TITLE: ${{ inputs.title }}
+        RP_API_KEY: ${{ inputs.api-key }}
+        RP_KEY: ${{ inputs.key }}
+        RP_ID_COLUMN: ${{ inputs.id-column }}
+        RP_DATASET_TOKEN: ${{ inputs.dataset-token }}
+        RP_RUN: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        RP_COMMIT: ${{ github.sha }}
+      run: node "$GITHUB_ACTION_PATH/lib/push.mjs"
+
+    - id: comment
+      if: ${{ inputs.comment == 'true' }}
+      shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.github-token }}
+        PR_NUMBER: ${{ github.event.pull_request.number || github.event.number }}
+        MARKER: ${{ steps.push.outputs.marker }}
+        SUMMARY: ${{ steps.push.outputs.summary }}
+      run: node "$GITHUB_ACTION_PATH/lib/comment.mjs"

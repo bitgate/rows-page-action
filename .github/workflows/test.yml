@@ -1,0 +1,81 @@
+name: test
+on: [push, pull_request]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  push-and-verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: ./
+        id: push
+        with:
+          path: sample/data.csv
+          title: rows-page-action sample
+          id-column: id
+          comment: false
+
+      - name: Verify the new dataset
+        env:
+          URL: ${{ steps.push.outputs.url }}
+          ID: ${{ steps.push.outputs.id }}
+          VERSION: ${{ steps.push.outputs.version }}
+        run: |
+          set -euo pipefail
+          [ -n "$URL" ] && [ "$VERSION" = "1" ]
+          curl -fsS "https://rows.page/$ID/raw.csv" | cmp - sample/data.csv
+          echo "Live: $URL"
+
+      - uses: ./
+        id: again
+        with:
+          path: sample/data.csv
+          dataset-token: ${{ steps.push.outputs.token }}
+
+      - name: Verify the same file adds no version
+        env:
+          FIRST_ID: ${{ steps.push.outputs.id }}
+          ID: ${{ steps.again.outputs.id }}
+          UNCHANGED: ${{ steps.again.outputs.unchanged }}
+        run: |
+          set -euo pipefail
+          [ "$ID" = "$FIRST_ID" ] && [ "$UNCHANGED" = "true" ]
+
+      - uses: ./
+        id: v2
+        with:
+          path: sample/data-v2.csv
+          dataset-token: ${{ steps.push.outputs.token }}
+
+      - name: Verify the new version and its diff
+        env:
+          ID: ${{ steps.v2.outputs.id }}
+          VERSION: ${{ steps.v2.outputs.version }}
+          DIFF_URL: ${{ steps.v2.outputs.diff-url }}
+        run: |
+          set -euo pipefail
+          [ "$VERSION" = "2" ] && [ -n "$DIFF_URL" ]
+          curl -fsS "https://rows.page/$ID/v2/raw.csv" | cmp - sample/data-v2.csv
+
+  repeat:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: ./
+        id: push
+        with:
+          path: sample/data.csv
+          comment: false
+
+      - name: Verify the same inputs push again
+        env:
+          URL: ${{ steps.push.outputs.url }}
+        run: |
+          set -euo pipefail
+          [ -n "$URL" ]
+          curl -fsS -o /dev/null "$URL"

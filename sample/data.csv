@@ -1,0 +1,7 @@
+id,name,country,amount,status
+1,Alice,NL,120.50,paid
+2,Bob,BE,89.00,open
+3,Chen,DE,245.10,paid
+4,Dana,NL,15.00,refunded
+5,Eli,FR,64.75,open
+6,Fatima,NL,310.00,paid
