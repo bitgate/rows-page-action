@@ -1,5 +1,7 @@
 # rows-page-action
 
+[![test](https://github.com/bitgate/rows-page-action/actions/workflows/test.yml/badge.svg)](https://github.com/bitgate/rows-page-action/actions/workflows/test.yml)
+
 Push a CSV, TSV, JSON, JSONL or Parquet file from a workflow to [rows.page](https://rows.page) and get a link a human can explore: filters, sorting, column charts, SQL, and what changed since the previous version. One step, no account needed, and on pull requests a comment with the link and the diff. Exports, reports, test results, scraped data, whatever your job produces as rows.
 
 ## Usage
@@ -12,7 +14,7 @@ Push a CSV, TSV, JSON, JSONL or Parquet file from a workflow to [rows.page](http
 - run: echo "${{ steps.rows.outputs.url }}"
 ```
 
-Anonymous datasets are deleted after 7 days. Open the owner link (the masked `owner-url` output) and sign in to keep one.
+The link also lands in the job summary. Anonymous datasets are deleted after 7 days. Open the owner link (the masked `owner-url` output) and sign in to keep one.
 
 ### One stable link per pull request
 
